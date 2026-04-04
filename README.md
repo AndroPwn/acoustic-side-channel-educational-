@@ -1,77 +1,81 @@
 # acoustic-side-channel
 
-Research replication of acoustic side-channel attacks on keyboards, based on the 2023 paper "A Practical Deep Learning-Based Acoustic Side Channel Attack on Keyboards" (Harrison et al., Durham/Surrey universities).
+A replication of acoustic side-channel attacks on keyboards, based on the 2023 paper ["A Practical Deep Learning-Based Acoustic Side Channel Attack on Keyboards"](https://arxiv.org/abs/2308.01074) (Harrison et al.).
 
-## How it works
+> **Disclaimer:** This project is for educational and security research purposes only.
 
-Every key on a keyboard produces a slightly different sound due to its physical position and the resonance of the chassis. By recording keypress audio samples and training a classifier on the acoustic fingerprints, it is possible to identify which key was pressed from sound alone.
+## What is this?
 
-## Disclaimer
+Every key on a keyboard makes a slightly different sound because of its physical position and how the keyboard chassis resonates. By recording ~50 samples of each key and training a classifier on those sounds, the model can identify which key was pressed from audio alone — no visuals, no keylogger software.
 
-This project is for educational and security research purposes only. It was built to understand and demonstrate the attack described in the original paper.
+This project implements the full pipeline: collect → train → infer live.
 
-## Pipeline
+## How to run it
 
-1. **Collect** — record ~50 keypress samples per key using `record_samples.py`
-2. **Train** — extract energy features and train a KNN classifier using `Train.py`
-3. **Infer** — run live mic classification using `listen.py`
+### On a laptop / desktop (Linux, macOS, Windows)
 
-## Requirements
-
-```
-pip install numpy scikit-learn sounddevice
-```
-
-## Usage
-
-### Desktop / Laptop (Linux, macOS, Windows)
-
-`record_samples.py` uses `sounddevice` for cross-platform microphone access.
-
+**1. Install dependencies:**
 ```bash
-# collect your own data (~50 presses per key, one at a time when prompted)
-python3 record_samples.py
+pip install -r requirements.txt
+# Arch Linux also needs:      sudo pacman -S portaudio
+# Ubuntu/Debian also needs:   sudo apt install libportaudio2
+```
 
-# or one key at a time
-python3 record_samples.py a
+**2. Collect samples** — press each key one at a time when prompted:
+```bash
+python3 record_samples.py        # all keys
+python3 record_samples.py a      # just one key at a time
+```
 
-# train the classifier
+**3. Train the classifier:**
+```bash
 python3 Train.py
+```
 
-# run live inference
+**4. Run live inference** — press keys near the mic and watch predictions:
+```bash
 python3 listen.py
 ```
 
-### Android / Termux
+---
 
-The original `record_samples.py` used `termux-microphone-record` for burst recording.
-The current version uses `sounddevice` instead, which also works in Termux if you install it via:
+### On Android with Termux
 
+**1. Install both apps from F-Droid** (not the Play Store):
+- [Termux](https://f-droid.org/en/packages/com.termux/)
+- [Termux:API](https://f-droid.org/en/packages/com.termux.api/)
+
+**2. Inside Termux, install dependencies:**
 ```bash
-pkg install python
-pip install sounddevice numpy scikit-learn
+pkg install termux-api python ffmpeg
+pip install numpy scikit-learn
 ```
 
-## Notes
+> Do **not** install `sounddevice` on Termux — it won't work. The script detects Termux automatically and uses `termux-microphone-record` instead.
 
-- Data is not included — collect your own with `record_samples.py`
-- Press each key one at a time when prompted; the script auto-detects the keypress sound
-- Accuracy varies significantly by microphone quality and acoustic environment
-- A phone mic placed close to the keyboard outperforms an integrated laptop mic due to less aggressive noise cancellation
-- See the original paper for benchmark results (95% accuracy on a MacBook Pro with a nearby phone mic)
-- The feature set is simple (energy envelope + stats) — swapping in MFCCs would likely improve accuracy
+**3. Collect, train, and infer the same way as laptop.**
 
-## File structure
+---
 
-```
-record_samples.py   # capture keypress audio samples (desktop + Termux)
-Train.py            # extract features and train KNN classifier
-listen.py           # real-time inference via microphone
-model.py            # shared feature extraction logic
-data/               # created automatically, stores .npy samples per key
-model.pkl           # saved after training
-```
+## File overview
+
+| File | What it does |
+|------|-------------|
+| `record_samples.py` | Records ~50 keypress audio samples per key |
+| `Train.py` | Loads samples, extracts features, trains a KNN classifier |
+| `listen.py` | Listens to your mic in real time and predicts each keypress |
+| `model.py` | Shared feature extraction (energy envelope + stats) |
+| `requirements.txt` | Python dependencies (laptop/desktop only) |
+
+## How it works (simplified)
+
+1. Each keypress audio clip is sliced into 10ms chunks
+2. The energy of each chunk is computed, forming a time-energy curve
+3. A K-Nearest Neighbors classifier matches new keypresses to the closest training examples
+4. Accuracy depends heavily on microphone quality and how consistent your keypresses are
+
+The original paper reports ~95% accuracy on a MacBook Pro with a nearby phone mic.
 
 ## Reference
 
-Harrison, J. et al. "A Practical Deep Learning-Based Acoustic Side Channel Attack on Keyboards." IEEE European Symposium on Security and Privacy Workshops, 2023.
+Harrison, J. et al. "A Practical Deep Learning-Based Acoustic Side Channel Attack on Keyboards." *IEEE European Symposium on Security and Privacy Workshops*, 2023.
