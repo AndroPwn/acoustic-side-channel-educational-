@@ -13,34 +13,64 @@ This project is for educational and security research purposes only. It was buil
 ## Pipeline
 
 1. **Collect** — record ~50 keypress samples per key using `record_samples.py`
-2. **Train** — extract energy features and train a KNN classifier using `train.py`
+2. **Train** — extract energy features and train a KNN classifier using `Train.py`
 3. **Infer** — run live mic classification using `listen.py`
+
+## Requirements
+
+```
+pip install numpy scikit-learn sounddevice
+```
 
 ## Usage
 
-```bash
-pip install -r requirements.txt
+### Desktop / Laptop (Linux, macOS, Windows)
 
-# collect your own data (~50 presses per key)
+`record_samples.py` uses `sounddevice` for cross-platform microphone access.
+
+```bash
+# collect your own data (~50 presses per key, one at a time when prompted)
 python3 record_samples.py
 
 # or one key at a time
 python3 record_samples.py a
 
 # train the classifier
-python3 train.py
+python3 Train.py
 
 # run live inference
 python3 listen.py
 ```
 
+### Android / Termux
+
+The original `record_samples.py` used `termux-microphone-record` for burst recording.
+The current version uses `sounddevice` instead, which also works in Termux if you install it via:
+
+```bash
+pkg install python
+pip install sounddevice numpy scikit-learn
+```
+
 ## Notes
 
 - Data is not included — collect your own with `record_samples.py`
-- `record_samples.py` uses `termux-microphone-record` for Android/Termux. On desktop, swap it for `sounddevice` based recording
+- Press each key one at a time when prompted; the script auto-detects the keypress sound
 - Accuracy varies significantly by microphone quality and acoustic environment
 - A phone mic placed close to the keyboard outperforms an integrated laptop mic due to less aggressive noise cancellation
 - See the original paper for benchmark results (95% accuracy on a MacBook Pro with a nearby phone mic)
+- The feature set is simple (energy envelope + stats) — swapping in MFCCs would likely improve accuracy
+
+## File structure
+
+```
+record_samples.py   # capture keypress audio samples (desktop + Termux)
+Train.py            # extract features and train KNN classifier
+listen.py           # real-time inference via microphone
+model.py            # shared feature extraction logic
+data/               # created automatically, stores .npy samples per key
+model.pkl           # saved after training
+```
 
 ## Reference
 
